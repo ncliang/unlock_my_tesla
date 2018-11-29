@@ -14,16 +14,39 @@ args = parser.parse_args()
 
 password = getpass.getpass('Tesla password: ')
 
+
+class UnlockException(Exception):
+    pass
+
+
+def make_request(callable, callable_args=None):
+    if not callable_args:
+        callable_args = {}
+
+    resp = callable(**callable_args)
+    if not resp:
+        return None
+
+    if 'error' in resp:
+        raise UnlockException(resp['error'])
+    return resp['response']
+
+
+print('Checking for locked and at home cars at %s second intervals...' % args.interval)
+
 while True:
     conn = myTesla.connect(args.username, password)
-    vehicle_state = conn.vehicle_state()
+    vehicles = make_request(conn.vehicles)
 
-    if 'error' in vehicle_state:
-        print(vehicle_state['error'])
-    else:
-        vehicle_state = vehicle_state['response']
+    for v in vehicles:
+        if v['state'] != 'online':
+            print('%s offline, skipped' % v['display_name'])
+            continue
+
+        make_request(conn.select_vehicle, {'vin': v['vin']})
+        vehicle_state = make_request(conn.vehicle_state)
         if vehicle_state['homelink_nearby'] and vehicle_state['locked']:
-            conn.door_unlock()
-            print('Found locked door. Unlock!')
+            make_request(conn.door_unlock)
+            print('%s door locked and at home. Unlock!' % v['display_name'])
 
     time.sleep(args.interval)
