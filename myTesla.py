@@ -25,7 +25,7 @@ class connect:
                                                       base_url="https://owner-api.teslamotors.com",
                                                       ownerapi_client_id=ownerapi_client_id,
                                                       ownerapi_client_secret=ownerapi_client_secret,
-                                              )
+                                                      )
             access_token = access_token_resp["access_token"]
         self.headers = {"Authorization": "Bearer {}".format(access_token)}
 
@@ -43,8 +43,6 @@ class connect:
                     break
         elif (id is not None):
             self.vehicle_id = vehicle_id
-
-
 
     def get_access_token(self, email='', password='',
                          base_url="https://owner-api.teslamotors.com",
@@ -296,4 +294,6 @@ class connect:
         :param which_trunk: The trunk to open. rear and front are the only options Example: rear
         '''
         data = {"which_trunk": which_trunk}
-        return self.post_command("trunk_open", data=data)
+        return self.post_command("trunk_open",
+                                 command_url="/vehicles/{vehicle_id}/command/actuate_trunk",
+                                 data=data)
