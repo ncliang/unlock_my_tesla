@@ -1,35 +1,47 @@
-#!/usr/bin/env python3
-
-import argparse
-import getpass
+import os
 import time
 
-import common
 import myTesla
 
-parser = argparse.ArgumentParser(description='Unlock my tesla.')
-parser.add_argument('--username', help='Tesla username', required=True)
-parser.add_argument('--interval', help='Polling interval in seconds', default=300)
 
-args = parser.parse_args()
+class UnlockException(Exception):
+    pass
 
-password = getpass.getpass('Tesla password: ')
 
-print('Checking for locked and at home cars at %s second intervals...' % args.interval)
+def make_request(callable, callable_args=None, max_attempts=1, retry_interval_sec=5):
+    if not callable_args:
+        callable_args = {}
 
-while True:
-    conn = myTesla.connect(args.username, password)
-    vehicles = common.make_request(conn.vehicles)
+    for attempt in range(max_attempts):
+        resp = callable(**callable_args)
+        if not resp:
+            return None
+
+        if 'error' in resp:
+            if attempt == max_attempts - 1:
+                raise UnlockException(resp['error'])
+            else:
+                time.sleep(retry_interval_sec * (attempt + 1))
+                continue
+
+        return resp['response']
+
+
+def lambda_handler(event, _):
+    username = os.environ['TESLA_EMAIL']
+    password = os.environ['TESLA_PASS']
+
+    conn = myTesla.connect(username, password)
+    vehicles = make_request(conn.vehicles)
 
     for v in vehicles:
+        make_request(conn.select_vehicle, {'vin': v['vin']})
+
         if v['state'] != 'online':
-            print('%s offline, skipped' % v['display_name'])
-            continue
+            print('%s asleep, waking...' % v['display_name'])
+            make_request(conn.wake_up)
 
-        common.make_request(conn.select_vehicle, {'vin': v['vin']})
-        vehicle_state = common.make_request(conn.vehicle_state)
-        if vehicle_state['homelink_nearby'] and vehicle_state['locked']:
-            common.make_request(conn.door_unlock)
-            print('%s door locked and at home. Unlock!' % v['display_name'])
-
-    time.sleep(args.interval)
+        if event['clickType'] == 'SINGLE':
+            make_request(conn.door_unlock, max_attempts=3)
+        elif event['clickType'] == 'DOUBLE':
+            make_request(conn.trunk_open, {'which_trunk': 'front'}, max_attempts=3)
