@@ -1,16 +1,15 @@
 # unlock_my_tesla
-Small script to loop and unlock my Tesla when the car is at home.
+Script to be used in AWS lambda to unlock Tesla with an [AWS IoT Button](https://aws.amazon.com/iotbutton/).
+Based on the idea of [tesla-unlock-lambda](https://bitbucket.org/mikeortman/tesla-unlock-lambda/), but rewritten in Python and improved with double-click feature.
 
-Makes use of myTesla.py from https://github.com/zmsp/python-my-tesla.
+### Features
+* Click to unlock
+* Double-click to pop-frunk
+* Works even if vehicle is in deep-sleep
 
-```
-usage: unlock_my_tesla.py [-h] --username USERNAME [--interval INTERVAL]
-
-Unlock my tesla.
-
-optional arguments:
-  -h, --help           show this help message and exit
-  --username USERNAME  Tesla username
-  --interval INTERVAL  Polling interval in seconds
-```
-The script will prompt for your Tesla password each time it is launched but will not save it anywhere.
+### How to use
+1. Create AWS Lambda function. Choose the Python 3.7 runtim.
+2. Upload a zip file containing both unlock_my_tesla.py and myTesla.py
+3. Set the handler to be "unlock_my_tesla.lambda_handler"
+4. Add environment variables TESLA_EMAIL and TESLA_PASS.
+5. Configure AWS IoT button to call this Lambda function. I used the AWS IoT Button Dev app for this.
