@@ -4,7 +4,7 @@ Based on the idea of [tesla-unlock-lambda](https://bitbucket.org/mikeortman/tesl
 
 ### Features
 * Click to unlock
-* Double-click to pop-frunk
+* Double-click to pop frunk
 * Works even if vehicle is in deep-sleep
 
 ### How to use
